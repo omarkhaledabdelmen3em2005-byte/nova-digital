@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bundles — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Bundles</span></div>
+  <h1 class="display-2">Product Bundles</h1>
+  <p style="margin-top:8px;max-width:520px;">Curated sets at a lower total price than buying each product separately.</p>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="grid grid-2" id="bundle-grid"></div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader('Bundles');
+  renderFooter();
+
+  document.getElementById('bundle-grid').innerHTML = BUNDLES.map(b => {
+    const items = b.productIds.map(getProduct);
+    const value = items.reduce((s,p)=>s+p.was, 0);
+    const saved = value - b.price;
+    return `<div class="bundle-card reveal in">
+      <div class="bundle-head">
+        <div>
+          <div class="eyebrow">Bundle</div>
+          <h3 class="display-3" style="margin-top:6px;">${b.name}</h3>
+        </div>
+        <span class="badge-inline">Save $${saved}</span>
+      </div>
+      <p>${b.blurb}</p>
+      <div class="bundle-items">
+        ${items.map(p => `<span class="chip">${p.name}</span>`).join('')}
+      </div>
+      <div class="bundle-value-row">
+        <span>Individually: <s style="color:var(--stone);">$${value}</s></span>
+        <span class="save">You save $${saved}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+        <span class="pi-price">$${b.price}</span>
+        <button class="btn btn-primary" data-add-bundle="${b.id}">Add Bundle to Cart</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-add-bundle]').forEach(btn => btn.addEventListener('click', () => {
+    const b = getBundle(Number(btn.dataset.addBundle));
+    b.productIds.forEach(id => Cart.add(id, 1));
+    toast(`${b.name} added to cart`, {icon: ICON.cart});
+  }));
+</script>
+</body>
+</html>

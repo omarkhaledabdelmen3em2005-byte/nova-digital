@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Account</span></div>
+  <h1 class="display-2">My Account</h1>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="account-layout">
+    <nav class="account-nav" id="account-nav">
+      <a href="#overview" data-tab="overview">Overview</a>
+      <a href="#purchases" data-tab="purchases">My Purchases</a>
+      <a href="#downloads" data-tab="downloads">Downloads</a>
+      <a href="#wishlist" data-tab="wishlist">Wishlist</a>
+      <a href="#orders" data-tab="orders">Orders</a>
+      <a href="#profile" data-tab="profile">Profile</a>
+      <a href="#settings" data-tab="settings">Account Settings</a>
+      <a href="#support" data-tab="support">Support</a>
+    </nav>
+    <div id="account-content"></div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader();
+  renderFooter();
+
+  const tabs = ['overview','purchases','downloads','wishlist','orders','profile','settings','support'];
+  const orders = Store.get('plinth_orders', []);
+  const purchasedIds = [...new Set(orders.flatMap(o => o.items.map(i=>i.id)))];
+  const profile = Store.get('plinth_profile', { name:'Jordan Ahmed', email:'jordan@email.com' });
+
+  function panelOverview(){
+    return `
+    <div class="grid grid-4" style="margin-bottom:32px;">
+      <div class="stat-card"><div class="n">${orders.length}</div><div class="l">Orders placed</div></div>
+      <div class="stat-card"><div class="n">${purchasedIds.length}</div><div class="l">Products owned</div></div>
+      <div class="stat-card"><div class="n">${Wishlist.items().length}</div><div class="l">Wishlist items</div></div>
+      <div class="stat-card"><div class="n">${orders.reduce((s,o)=>s+Number((o.total||'$0').replace('$','')),0)}</div><div class="l">Total spent ($)</div></div>
+    </div>
+    <h3 class="display-3" style="margin-bottom:16px;">Recent Orders</h3>
+    ${orders.length ? renderOrdersTable(orders.slice(0,3)) : emptyBlock('No orders yet', 'Once you check out, your orders will show up here.', 'store.html', 'Explore Products')}
+    `;
+  }
+
+  function renderOrdersTable(list){
+    return `<table class="data-table"><thead><tr><th>Order</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>
+      ${list.map(o => `<tr>
+        <td style="font-family:var(--font-mono);">${o.id}</td>
+        <td>${new Date(o.date).toLocaleDateString()}</td>
+        <td>${o.items.length}</td>
+        <td>${o.total}</td>
+        <td><span class="status-tag paid">Paid</span></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  function emptyBlock(title, sub, href, label){
+    return `<div class="empty-state" style="background:var(--card);border:1px solid var(--line);border-radius:var(--radius-l);">
+      <h3 class="display-3">${title}</h3><p style="margin:10px 0 18px;">${sub}</p>
+      <a href="${href}" class="btn btn-primary">${label}</a></div>`;
+  }
+
+  function panelPurchases(){
+    if(!purchasedIds.length) return emptyBlock('No purchases yet', 'Products you buy will appear here for lifetime access.', 'store.html', 'Explore Products');
+    return `<div class="grid grid-3">${purchasedIds.map(id => { const p = getProduct(id); if(!p) return ''; return `
+      <div class="card"><div class="card-media" style="background:linear-gradient(135deg, ${p.palette[0]}33, ${p.palette[1]}33);"></div>
+        <div class="card-body"><h3 class="card-name">${p.name}</h3>
+        <button class="btn btn-outline btn-sm" data-dl="${p.name}">Download</button></div></div>`; }).join('')}</div>`;
+  }
+
+  function panelDownloads(){
+    if(!purchasedIds.length) return emptyBlock('Nothing to download yet', 'Your purchased files will be listed here, always available.', 'store.html', 'Explore Products');
+    return `<table class="data-table"><thead><tr><th>Product</th><th>Files</th><th>Size</th><th>Status</th><th></th></tr></thead><tbody>
+      ${purchasedIds.map(id => { const p = getProduct(id); if(!p) return ''; return `<tr>
+        <td>${p.name}</td><td>${p.files}</td><td>${p.size}</td><td><span class="status-tag paid">Available</span></td>
+        <td><button class="btn btn-outline btn-sm" data-dl="${p.name}">Download</button></td>
+      </tr>`; }).join('')}
+    </tbody></table>`;
+  }
+
+  function panelWishlist(){
+    const ids = Wishlist.items();
+    if(!ids.length) return emptyBlock('Your wishlist is empty', 'Save products you like to find them here later.', 'store.html', 'Explore Products');
+    return `<div class="grid grid-3">${ids.map(id => productCard(getProduct(id))).filter(Boolean).join('')}</div>`;
+  }
+
+  function panelOrders(){
+    if(!orders.length) return emptyBlock('No orders yet', 'Your order history will show up here.', 'store.html', 'Explore Products');
+    return renderOrdersTable(orders);
+  }
+
+  function panelProfile(){
+    return `<div class="form-block" style="max-width:480px;">
+      <h3>Profile</h3>
+      <div class="field"><label>Full name</label><input type="text" id="pf-name" value="${profile.name}"></div>
+      <div class="field"><label>Email</label><input type="email" id="pf-email" value="${profile.email}"></div>
+      <button class="btn btn-primary" id="pf-save">Save Changes</button>
+    </div>`;
+  }
+
+  function panelSettings(){
+    return `<div class="form-block" style="max-width:480px;">
+      <h3>Account Settings</h3>
+      <div class="field"><label>New password</label><input type="password" placeholder="••••••••"></div>
+      <div class="field"><label>Confirm password</label><input type="password" placeholder="••••••••"></div>
+      <button class="btn btn-primary" id="set-save">Update Password</button>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+      <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" id="clear-data">Clear Local Demo Data</button>
+    </div>`;
+  }
+
+  function panelSupport(){
+    return `<div class="form-block" style="max-width:520px;">
+      <h3>Open a Support Ticket</h3>
+      <div class="field"><label>Order number</label><input type="text" placeholder="PLN-000000" id="sp-order"></div>
+      <div class="field"><label>Subject</label><input type="text" placeholder="What's the issue?" id="sp-subject"></div>
+      <div class="field"><label>Message</label><textarea rows="4" style="width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;" id="sp-msg"></textarea></div>
+      <button class="btn btn-primary" id="sp-send">Submit Ticket</button>
+    </div>`;
+  }
+
+  const renderers = { overview: panelOverview, purchases: panelPurchases, downloads: panelDownloads, wishlist: panelWishlist, orders: panelOrders, profile: panelProfile, settings: panelSettings, support: panelSupport };
+
+  function showTab(tab){
+    document.querySelectorAll('#account-nav a').forEach(a => a.classList.toggle('active', a.dataset.tab===tab));
+    const content = document.getElementById('account-content');
+    content.innerHTML = renderers[tab]();
+    bindCardEvents(content);
+    content.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => toast(`Downloading ${b.dataset.dl}…`, {icon:ICON.check})));
+    const save = document.getElementById('pf-save');
+    if(save) save.addEventListener('click', () => {
+      Store.set('plinth_profile', { name: document.getElementById('pf-name').value, email: document.getElementById('pf-email').value });
+      toast('Profile updated');
+    });
+    const setSave = document.getElementById('set-save');
+    if(setSave) setSave.addEventListener('click', () => toast('Password updated'));
+    const clearBtn = document.getElementById('clear-data');
+    if(clearBtn) clearBtn.addEventListener('click', () => { localStorage.clear(); toast('Local demo data cleared'); setTimeout(()=>location.reload(), 800); });
+    const spSend = document.getElementById('sp-send');
+    if(spSend) spSend.addEventListener('click', () => {
+      if(!document.getElementById('sp-subject').value.trim()){ toast('Add a subject before submitting.'); return; }
+      toast('Support ticket submitted — we\'ll reply by email.');
+      document.getElementById('sp-subject').value=''; document.getElementById('sp-msg').value='';
+    });
+  }
+
+  document.querySelectorAll('#account-nav a').forEach(a => a.addEventListener('click', (e) => { e.preventDefault(); showTab(a.dataset.tab); history.replaceState(null,'','#'+a.dataset.tab); }));
+  const initialTab = (location.hash || '#' + (new URLSearchParams(location.search).get('tab') || 'overview')).replace('#','');
+  showTab(tabs.includes(initialTab) ? initialTab : 'overview');
+</script>
+</body>
+</html>

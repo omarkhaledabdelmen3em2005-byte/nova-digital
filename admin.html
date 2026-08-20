@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body{ background:var(--wall-dim); }
+  .admin-shell{ display:grid; grid-template-columns:230px 1fr; min-height:100vh; }
+  .admin-side{ background:var(--ink); color:var(--wall); padding:24px 16px; }
+  .admin-side a{ display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; font-size:14px; color:#c9c7c1; margin-bottom:2px; }
+  .admin-side a.active, .admin-side a:hover{ background:#2b2a26; color:#fff; }
+  .admin-main{ padding:32px 36px; }
+  @media (max-width:820px){ .admin-shell{ grid-template-columns:1fr; } .admin-side{ display:flex; overflow-x:auto; gap:4px; padding:14px; } }
+</style>
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="admin-side">
+    <div class="logo" style="color:#fff;margin-bottom:24px;"><span class="mark"></span>Plinth Admin</div>
+    <a href="#dashboard" data-tab="dashboard">Dashboard</a>
+    <a href="#products" data-tab="products">Products</a>
+    <a href="#orders" data-tab="orders">Orders</a>
+    <a href="#customers" data-tab="customers">Customers</a>
+    <a href="#coupons" data-tab="coupons">Coupons</a>
+    <a href="#bundles" data-tab="bundles">Bundles</a>
+    <a href="#reviews" data-tab="reviews">Reviews</a>
+    <a href="#blog" data-tab="blog">Blog Posts</a>
+    <a href="index.html" style="margin-top:16px;border-top:1px solid #3a3934;padding-top:16px;">&larr; Back to Store</a>
+  </aside>
+  <main class="admin-main" id="admin-main"></main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  const orders = Store.get('plinth_orders', []);
+  const revenue = orders.reduce((s,o)=>s+Number((o.total||'$0').replace('$','')),0);
+  const unitsSold = orders.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0);
+
+  function statCards(){
+    return `<div class="grid grid-4" style="margin-bottom:30px;">
+      <div class="stat-card"><div class="n">$${revenue}</div><div class="l">Total Revenue</div></div>
+      <div class="stat-card"><div class="n">${orders.length}</div><div class="l">Orders</div></div>
+      <div class="stat-card"><div class="n">${unitsSold}</div><div class="l">Products Sold</div></div>
+      <div class="stat-card"><div class="n">${orders.length ? '3.8%' : '0%'}</div><div class="l">Conversion Rate</div></div>
+    </div>`;
+  }
+
+  function barChart(label, values){
+    const max = Math.max(...values.map(v=>v.v), 1);
+    return `<div class="stat-card" style="padding:22px;">
+      <div style="font-size:13px;color:var(--stone);margin-bottom:16px;">${label}</div>
+      <div style="display:flex;align-items:flex-end;gap:10px;height:140px;">
+        ${values.map(v => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="width:100%;background:var(--verdigris);border-radius:6px 6px 0 0;height:${(v.v/max*110)+6}px;"></div>
+          <span style="font-size:10.5px;color:var(--stone);">${v.k}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  const panels = {
+    dashboard: () => `
+      <h1 class="display-3" style="margin-bottom:6px;">Dashboard</h1>
+      <p style="margin-bottom:26px;">Live view of demo store activity (stored locally in this browser).</p>
+      ${statCards()}
+      <div class="grid grid-2">
+        ${barChart('Revenue (last 6 weeks — demo data)', [{k:'W1',v:820},{k:'W2',v:1400},{k:'W3',v:1180},{k:'W4',v:1960},{k:'W5',v:2210},{k:'W6',v:revenue||1500}])}
+        ${barChart('Orders (last 6 weeks — demo data)', [{k:'W1',v:12},{k:'W2',v:19},{k:'W3',v:15},{k:'W4',v:26},{k:'W5',v:31},{k:'W6',v:orders.length||18}])}
+      </div>
+      <h3 class="display-3" style="margin:30px 0 14px;">Best-Selling Products</h3>
+      <table class="data-table"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Rating</th></tr></thead><tbody>
+        ${PRODUCTS.slice().sort((a,b)=>b.reviews-a.reviews).slice(0,5).map(p=>`<tr><td>${p.name}</td><td>${getCategory(p.category)?.name}</td><td>$${p.price}</td><td>${p.rating} ★ (${p.reviews})</td></tr>`).join('')}
+      </tbody></table>
+      <h3 class="display-3" style="margin:30px 0 14px;">Recent Orders</h3>
+      ${orders.length ? `<table class="data-table"><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>
+        ${orders.slice(0,5).map(o=>`<tr><td style="font-family:var(--font-mono);">${o.id}</td><td>${o.email}</td><td>${o.total}</td><td><span class="status-tag paid">Paid</span></td></tr>`).join('')}
+      </tbody></table>` : `<p>No orders placed yet in this browser session.</p>`}
+    `,
+    products: () => `
+      <h1 class="display-3" style="margin-bottom:6px;">Products</h1>
+      <p style="margin-bottom:20px;">${PRODUCTS.length} products across ${CATEGORIES.length} categories.</p>
+      <table class="data-table"><thead><tr><th>Obj. No.</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Rating</th></tr></thead><tbody>
+        ${PRODUCTS.map(p=>`<tr><td style="font-family:var(--font-mono);">${p.obj}</td><td>${p.name}</td><td>${getCategory(p.category)?.name}</td><td>$${p.price}</td><td><span class="status-tag paid">In stock</span></td><td>${p.rating} ★</td></tr>`).join('')}
+      </tbody></table>`,
+    orders: () => `
+      <h1 class="display-3" style="margin-bottom:16px;">Orders</h1>
+      ${orders.length ? `<table class="data-table"><thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>
+        ${orders.map(o=>`<tr><td style="font-family:var(--font-mono);">${o.id}</td><td>${o.email}</td><td>${new Date(o.date).toLocaleDateString()}</td><td>${o.items.length}</td><td>${o.total}</td><td><span class="status-tag paid">Paid</span></td></tr>`).join('')}
+      </tbody></table>` : `<p>No orders yet — place a demo order from the storefront checkout.</p>`}`,
+    customers: () => `<h1 class="display-3" style="margin-bottom:16px;">Customers</h1>
+      ${orders.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Orders</th></tr></thead><tbody>
+        ${[...new Map(orders.map(o=>[o.email,o])).values()].map(o=>`<tr><td>${o.name}</td><td>${o.email}</td><td>${orders.filter(x=>x.email===o.email).length}</td></tr>`).join('')}
+      </tbody></table>` : `<p>No customer records yet in this demo session.</p>`}`,
+    coupons: () => `<h1 class="display-3" style="margin-bottom:16px;">Coupons</h1>
+      <table class="data-table"><thead><tr><th>Code</th><th>Discount</th><th>Status</th></tr></thead><tbody>
+        <tr><td style="font-family:var(--font-mono);">PLINTH10</td><td>10% off order</td><td><span class="status-tag paid">Active</span></td></tr>
+      </tbody></table>`,
+    bundles: () => `<h1 class="display-3" style="margin-bottom:16px;">Bundles</h1>
+      <table class="data-table"><thead><tr><th>Bundle</th><th>Products</th><th>Price</th></tr></thead><tbody>
+        ${BUNDLES.map(b=>`<tr><td>${b.name}</td><td>${b.productIds.length}</td><td>$${b.price}</td></tr>`).join('')}
+      </tbody></table>`,
+    reviews: () => `<h1 class="display-3" style="margin-bottom:16px;">Reviews</h1>
+      <table class="data-table"><thead><tr><th>Product</th><th>Customer</th><th>Rating</th><th>Date</th></tr></thead><tbody>
+        ${Object.entries(REVIEWS).flatMap(([pid,revs])=>revs.map(r=>`<tr><td>${getProduct(pid)?.name}</td><td>${r.name}</td><td>${r.rating} ★</td><td>${r.date}</td></tr>`)).join('')}
+      </tbody></table>`,
+    blog: () => `<h1 class="display-3" style="margin-bottom:16px;">Blog Posts</h1>
+      <table class="data-table"><thead><tr><th>Title</th><th>Category</th><th>Date</th></tr></thead><tbody>
+        ${BLOG_POSTS.map(p=>`<tr><td>${p.title}</td><td>${p.category}</td><td>${p.date}</td></tr>`).join('')}
+      </tbody></table>`,
+  };
+
+  function show(tab){
+    document.querySelectorAll('.admin-side a[data-tab]').forEach(a=>a.classList.toggle('active', a.dataset.tab===tab));
+    document.getElementById('admin-main').innerHTML = panels[tab] ? panels[tab]() : panels.dashboard();
+  }
+  document.querySelectorAll('.admin-side a[data-tab]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.tab); history.replaceState(null,'','#'+a.dataset.tab); }));
+  show((location.hash||'#dashboard').replace('#',''));
+</script>
+</body>
+</html>

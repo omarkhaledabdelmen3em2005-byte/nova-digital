@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Product — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <a href="store.html">Store</a> / <span id="crumb-name">Product</span></div>
+</div>
+
+<section class="wrap">
+  <div class="product-layout" id="product-root"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="desc">Description</button>
+    <button class="tab-btn" data-tab="whats-inside">What's Inside</button>
+    <button class="tab-btn" data-tab="reviews">Reviews</button>
+    <button class="tab-btn" data-tab="faq">FAQ</button>
+  </div>
+  <div class="tab-panel active" id="panel-desc"></div>
+  <div class="tab-panel" id="panel-whats-inside"></div>
+  <div class="tab-panel" id="panel-reviews"></div>
+  <div class="tab-panel" id="panel-faq"></div>
+</section>
+
+<section class="wrap mt-lg">
+  <div class="section-head reveal"><div><div class="eyebrow">More like this</div><h2 class="display-3">You May Also Like</h2></div></div>
+  <div class="grid grid-4" id="related-grid"></div>
+</section>
+
+<div class="sticky-cta" id="sticky-cta">
+  <div>
+    <div class="price" id="sticky-price"></div>
+  </div>
+  <button class="btn btn-primary" id="sticky-add">Add to Cart</button>
+</div>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader('Store');
+  renderFooter();
+
+  const params = new URLSearchParams(location.search);
+  const p = getProduct(params.get('slug') || params.get('id') || PRODUCTS[0].slug);
+  if(!p){ document.getElementById('product-root').innerHTML = '<p>Product not found. <a href="store.html">Back to store</a></p>'; }
+  else {
+    document.title = p.name + ' — Plinth';
+    document.getElementById('page-title').textContent = p.name + ' — Plinth';
+    document.getElementById('crumb-name').textContent = p.name;
+    const discount = p.was ? Math.round((1 - p.price/p.was) * 100) : 0;
+
+    document.getElementById('product-root').innerHTML = `
+      <div>
+        <div class="gallery-main" id="gallery-main" style="background:linear-gradient(135deg, ${p.palette[0]}33, ${p.palette[1]}33);">
+          <svg viewBox="0 0 200 150" width="55%" fill="none" stroke="${p.palette[1]}" stroke-width="1.2" opacity="0.6">
+            <rect x="10" y="10" width="180" height="130" rx="6"/><path d="M10 100l40-40 30 30 40-55 60 65"/><circle cx="150" cy="35" r="10"/>
+          </svg>
+        </div>
+        <div class="gallery-thumbs">
+          ${[0,1,2,3].map(i => `<div class="t ${i===0?'active':''}" data-thumb="${i}" style="background:linear-gradient(135deg, ${p.palette[i%2]}44, ${p.palette[(i+1)%2]}44);"></div>`).join('')}
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="obj-no">Object No. ${p.obj}</div>
+        <h1 style="margin-top:6px;">${p.name}</h1>
+        <div class="pi-meta">
+          <span style="display:flex;align-items:center;gap:4px;">${ICON.star} ${p.rating} · ${p.reviews} reviews</span>
+          <span>${getCategory(p.category)?.name}</span>
+          ${p.badge ? `<span class="badge-inline">${p.badge}</span>` : ''}
+        </div>
+        <p>${p.tagline}</p>
+        ${p.was ? `<div class="limited-flag">${ICON.bolt} Limited-time offer — ${discount}% off</div>` : ''}
+        <div class="pi-price-row">
+          <span class="pi-price">$${p.price}</span>
+          ${p.was ? `<span class="price-was" style="font-size:16px;">$${p.was}</span>` : ''}
+        </div>
+        <div class="pi-actions">
+          <button class="btn btn-outline" id="btn-add">Add to Cart</button>
+          <button class="btn btn-primary" id="btn-buy">Buy Now</button>
+          <button class="btn-icon nav-badge" id="btn-wish" aria-label="Wishlist">${ICON.heart}</button>
+        </div>
+        <table class="spec-table">
+          <tr><td>File formats</td><td>${p.formats.join(', ')}</td></tr>
+          <tr><td>Number of files</td><td>${p.files}</td></tr>
+          <tr><td>File size</td><td>${p.size}</td></tr>
+          <tr><td>Software required</td><td>${p.software}</td></tr>
+          <tr><td>Delivery</td><td>Instant download</td></tr>
+          <tr><td>License</td><td>${p.license}</td></tr>
+          <tr><td>Free updates</td><td>${p.updates ? 'Included' : 'Not included'}</td></tr>
+        </table>
+      </div>`;
+
+    document.getElementById('sticky-price').textContent = '$' + p.price;
+    document.getElementById('panel-desc').innerHTML = `
+      <p style="max-width:640px;font-size:15px;line-height:1.7;">${p.tagline} Built for creators and small teams who want their output to look considered without spending days in a design tool. Every file is organized, labeled and ready to customize — drop in your own colors, copy and logo, and you're done.</p>
+      <p style="max-width:640px;font-size:15px;line-height:1.7;margin-top:14px;">Refunds are available within 14 days if the product isn't a fit — see our <a href="faq.html#refunds" style="color:var(--verdigris);">refund policy</a> for details.</p>`;
+
+    document.getElementById('panel-whats-inside').innerHTML = `<ul class="includes-list" style="max-width:520px;">
+      ${p.includes.map(i => `<li>${ICON.check} ${i}</li>`).join('')}
+    </ul>`;
+
+    const revs = REVIEWS[p.id] || [];
+    document.getElementById('panel-reviews').innerHTML = revs.length ? `
+      <div class="grid grid-3">${revs.map(r => `
+        <div class="review">
+          <div class="review-top"><div class="avatar">${r.name[0]}</div>
+            <div><div class="review-name">${r.name}</div>${r.verified?`<div class="verified">${ICON.check} Verified Purchase</div>`:''}</div></div>
+          <div class="stars">${Array(r.rating).fill(ICON.star).join('')}</div>
+          <p>"${r.text}"</p><div class="review-date">${r.date}</div>
+        </div>`).join('')}</div>`
+      : `<p>No reviews yet for this product — be the first to leave one after purchase.</p>`;
+
+    const faqs = [
+      ["How do I receive the product?", "Instantly. After checkout, your download unlocks on the confirmation page and stays in your account forever."],
+      ["Is this a lifetime purchase?", "Yes — one payment, lifetime access to the files and any listed free updates."],
+      ["Can I use it commercially?", p.license.includes('commercial') ? "Yes, this license covers commercial use. See the License tab for the full terms." : "This license is for personal use only. Contact support for a commercial license."],
+      ["What software do I need?", `You'll need ${p.software}.`],
+      ["Can I download it again?", "Yes, re-download anytime from My Purchases in your account."],
+      ["Do you provide updates?", p.updates ? "Yes, future updates to this product are included at no extra cost." : "This product doesn't include future updates."],
+      ["What happens if I have a problem?", "Reach out through Contact / Support with your order number and we'll help directly."],
+    ];
+    document.getElementById('panel-faq').innerHTML = faqs.map((f,i) => `
+      <div class="accordion-item ${i===0?'open':''}">
+        <div class="accordion-head">${f[0]}<span>${ICON.plus}</span></div>
+        <div class="accordion-body"><p>${f[1]}</p></div>
+      </div>`).join('');
+
+    document.getElementById('related-grid').innerHTML = PRODUCTS.filter(x => x.category===p.category && x.id!==p.id).slice(0,4)
+      .concat(PRODUCTS.filter(x=>x.id!==p.id)).filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).slice(0,4)
+      .map(productCard).join('');
+
+    // interactions
+    document.getElementById('btn-add').addEventListener('click', () => { Cart.add(p.id,1); toast(`${p.name} added to cart`, {icon:ICON.cart}); });
+    document.getElementById('sticky-add').addEventListener('click', () => { Cart.add(p.id,1); toast(`${p.name} added to cart`, {icon:ICON.cart}); });
+    document.getElementById('btn-buy').addEventListener('click', () => { Cart.add(p.id,1); location.href='checkout.html'; });
+    const wishBtn = document.getElementById('btn-wish');
+    wishBtn.classList.toggle('active', Wishlist.has(p.id));
+    wishBtn.addEventListener('click', () => { const a = Wishlist.toggle(p.id); wishBtn.classList.toggle('active', a); toast(a?'Saved to wishlist':'Removed from wishlist', {icon:ICON.heart}); });
+
+    document.querySelectorAll('.gallery-thumbs .t').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.gallery-thumbs .t').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+    }));
+
+    bindCardEvents(document.getElementById('related-grid'));
+
+    window.addEventListener('scroll', () => {
+      const cta = document.getElementById('sticky-cta');
+      cta.classList.toggle('show', window.scrollY > 420);
+    });
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(pn=>pn.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  }));
+  document.addEventListener('click', (e) => {
+    const head = e.target.closest('.accordion-head');
+    if(head) head.parentElement.classList.toggle('open');
+  });
+</script>
+</body>
+</html>

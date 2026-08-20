@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <a href="cart.html">Cart</a> / <span>Checkout</span></div>
+  <h1 class="display-2">Checkout</h1>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="checkout-layout" id="checkout-layout">
+    <div>
+      <div class="form-block">
+        <h3>Customer Information</h3>
+        <div class="field-row">
+          <div class="field"><label>Full name</label><input type="text" id="ck-name" placeholder="Jordan Ahmed"></div>
+          <div class="field"><label>Email</label><input type="email" id="ck-email" placeholder="you@email.com"></div>
+        </div>
+        <p style="font-size:12px;color:var(--stone);">Your download links and receipt go to this email.</p>
+      </div>
+
+      <div class="form-block">
+        <h3>Payment Method</h3>
+        <div class="pay-methods">
+          <label><input type="radio" name="pay" checked> Card</label>
+          <label><input type="radio" name="pay"> Apple Pay</label>
+          <label><input type="radio" name="pay"> PayPal</label>
+        </div>
+        <div id="card-fields">
+          <div class="field"><label>Card number</label><input type="text" placeholder="4242 4242 4242 4242" maxlength="19" id="ck-card"></div>
+          <div class="field-row">
+            <div class="field"><label>Expiry</label><input type="text" placeholder="MM / YY" maxlength="7"></div>
+            <div class="field"><label>CVC</label><input type="text" placeholder="123" maxlength="4"></div>
+          </div>
+        </div>
+        <div class="secure-row"><span id="secure-ico"></span>Payments are encrypted end-to-end. We never store full card numbers.</div>
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" id="ck-terms" style="margin-top:3px;">
+        <label for="ck-terms">I agree to the <a href="terms.html" style="color:var(--verdigris);">Terms &amp; Conditions</a> and understand digital products are non-returnable once downloaded, per the <a href="faq.html#refunds" style="color:var(--verdigris);">refund policy</a>.</label>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <h3 style="font-size:16px;margin-bottom:16px;">Order Summary</h3>
+      <div id="ck-items" style="margin-bottom:14px;"></div>
+      <div class="coupon-row">
+        <input type="text" id="ck-coupon" placeholder="Coupon code">
+        <button class="btn btn-outline btn-sm" id="ck-apply-coupon">Apply</button>
+      </div>
+      <div class="summary-row"><span>Subtotal</span><span id="ck-subtotal">$0</span></div>
+      <div class="summary-row" id="ck-discount-row" style="display:none;"><span>Discount</span><span id="ck-discount">-$0</span></div>
+      <div class="summary-row total"><span>Total</span><span id="ck-total">$0</span></div>
+      <button class="btn btn-primary btn-block" style="margin-top:18px;" id="complete-btn">Complete Purchase</button>
+    </div>
+  </div>
+
+  <div class="empty-state" id="ck-empty" style="display:none;">
+    <h3 class="display-3">Nothing to check out yet</h3>
+    <p style="margin:10px 0 20px;">Add a product to your cart first.</p>
+    <a href="store.html" class="btn btn-primary">Explore Products</a>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader();
+  renderFooter();
+  document.getElementById('secure-ico').innerHTML = ICON.shield;
+
+  const items = Cart.items();
+  const coupon = Store.get('plinth_coupon', null);
+  if(!items.length){
+    document.getElementById('checkout-layout').style.display = 'none';
+    document.getElementById('ck-empty').style.display = 'block';
+  } else {
+    document.getElementById('ck-items').innerHTML = items.map(it => {
+      const p = getProduct(it.id); if(!p) return '';
+      return `<div style="display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;">
+        <span>${p.name} ${it.qty>1?`× ${it.qty}`:''}</span><span class="price">$${(p.price*it.qty).toFixed(0)}</span></div>`;
+    }).join('');
+    updateTotals();
+  }
+
+  function updateTotals(){
+    const subtotal = Cart.subtotal();
+    let discount = coupon === 'PLINTH10' ? subtotal*0.10 : 0;
+    document.getElementById('ck-subtotal').textContent = '$' + subtotal.toFixed(0);
+    document.getElementById('ck-discount-row').style.display = discount ? 'flex':'none';
+    document.getElementById('ck-discount').textContent = '-$' + discount.toFixed(0);
+    document.getElementById('ck-total').textContent = '$' + (subtotal-discount).toFixed(0);
+  }
+  document.getElementById('ck-apply-coupon').addEventListener('click', () => {
+    const val = document.getElementById('ck-coupon').value.trim().toUpperCase();
+    Store.set('plinth_coupon', val === 'PLINTH10' ? val : null);
+    toast(val === 'PLINTH10' ? 'Coupon applied' : 'Invalid code');
+    location.reload();
+  });
+
+  document.getElementById('ck-card').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim();
+  });
+
+  document.getElementById('complete-btn').addEventListener('click', () => {
+    const name = document.getElementById('ck-name').value.trim();
+    const email = document.getElementById('ck-email').value.trim();
+    const terms = document.getElementById('ck-terms').checked;
+    if(!name || !email.includes('@')){ toast('Enter your name and a valid email.'); return; }
+    if(!terms){ toast('Please agree to the terms to continue.'); return; }
+
+    const orderId = 'PLN-' + Math.floor(100000 + Math.random()*900000);
+    const order = {
+      id: orderId, email, name, date: new Date().toISOString(),
+      items: Cart.items(), total: document.getElementById('ck-total').textContent,
+    };
+    const orders = Store.get('plinth_orders', []);
+    orders.unshift(order);
+    Store.set('plinth_orders', orders);
+    Store.set('plinth_last_order', orderId);
+    Cart.clear();
+    Store.set('plinth_coupon', null);
+    location.href = 'success.html?order=' + orderId;
+  });
+</script>
+</body>
+</html>

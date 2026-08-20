@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact &amp; Support — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Contact</span></div>
+  <h1 class="display-2">How can we help?</h1>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="contact-grid">
+    <div>
+      <div class="grid grid-2" style="margin-bottom:30px;" id="help-cats"></div>
+      <div class="form-block">
+        <h3>Send us a message</h3>
+        <div class="field-row">
+          <div class="field"><label>Name</label><input type="text" id="c-name"></div>
+          <div class="field"><label>Email</label><input type="email" id="c-email"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Order number (optional)</label><input type="text" id="c-order" placeholder="PLN-000000"></div>
+          <div class="field"><label>Product (optional)</label>
+            <select id="c-product"><option value="">Select a product</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Message</label><textarea rows="5" id="c-message" style="width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;"></textarea></div>
+        <button class="btn btn-primary" id="c-submit">Submit Ticket</button>
+      </div>
+    </div>
+    <div>
+      <div class="form-block">
+        <h3>Direct Contact</h3>
+        <p style="font-size:14px;">Email: <a href="mailto:support@plinth.co" style="color:var(--verdigris);">support@plinth.co</a></p>
+        <p style="font-size:14px;margin-top:8px;">Response time: within 1 business day.</p>
+      </div>
+      <div class="form-block">
+        <h3>Popular Questions</h3>
+        <div id="contact-faq"></div>
+        <a href="faq.html" class="btn btn-ghost" style="margin-top:6px;">View full FAQ</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader('Contact');
+  renderFooter();
+
+  document.getElementById('c-product').innerHTML += PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+  const helpCats = [
+    ["Orders", ICON.cart], ["Downloads", ICON.bolt], ["Refunds", ICON.shield], ["Account", ICON.user],
+  ];
+  document.getElementById('help-cats').innerHTML = helpCats.map(([label,icon]) => `
+    <div class="help-cat"><div class="ico">${icon}</div><div><b style="font-size:14px;">${label}</b><div style="font-size:12.5px;color:var(--stone);">Get help with ${label.toLowerCase()}</div></div></div>`).join('');
+
+  document.getElementById('contact-faq').innerHTML = [
+    ["How do I get my files again?","Go to My Account → Downloads."],
+    ["Can I get a refund?","Yes, within 14 days — see our refund policy."],
+  ].map(f => `<div class="accordion-item"><div class="accordion-head" style="font-size:14px;">${f[0]}<span>${ICON.plus}</span></div><div class="accordion-body"><p>${f[1]}</p></div></div>`).join('');
+  document.addEventListener('click', (e) => { const h=e.target.closest('.accordion-head'); if(h) h.parentElement.classList.toggle('open'); });
+
+  document.getElementById('c-submit').addEventListener('click', () => {
+    const name = document.getElementById('c-name').value.trim();
+    const email = document.getElementById('c-email').value.trim();
+    const msg = document.getElementById('c-message').value.trim();
+    if(!name || !email.includes('@') || !msg){ toast('Fill in your name, email and message.'); return; }
+    toast('Ticket submitted — we\'ll reply by email.');
+    ['c-name','c-email','c-order','c-message'].forEach(id => document.getElementById(id).value = '');
+  });
+</script>
+</body>
+</html>

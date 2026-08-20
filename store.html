@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Store</span></div>
+  <h1 class="display-2">The Store</h1>
+  <p style="margin-top:8px;">Browse the full catalog — filter, sort, and find exactly what you need.</p>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="store-layout">
+    <aside class="filter-panel">
+      <div class="filter-group">
+        <h4>Categories</h4>
+        <div id="cat-filters"></div>
+      </div>
+      <div class="filter-group">
+        <h4>Price</h4>
+        <div class="range-row">
+          <input type="number" id="price-min" placeholder="Min" min="0">
+          <span>–</span>
+          <input type="number" id="price-max" placeholder="Max" min="0">
+        </div>
+      </div>
+      <div class="filter-group">
+        <h4>Rating</h4>
+        <div id="rating-filters"></div>
+      </div>
+      <button class="btn btn-outline btn-block btn-sm" id="clear-filters">Clear Filters</button>
+    </aside>
+
+    <div>
+      <div class="store-toolbar">
+        <span class="result-count" id="result-count">Showing all products</span>
+        <select class="sortsel" id="sort-select">
+          <option value="popular">Sort: Popular</option>
+          <option value="newest">Newest</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rated">Best Rated</option>
+        </select>
+      </div>
+      <div class="grid grid-4" id="store-grid"></div>
+      <div class="center" id="no-results" style="display:none;padding:60px 0;">
+        <p>No products matched your filters.</p>
+        <button class="btn btn-outline btn-sm" id="reset-from-empty" style="margin-top:14px;">Reset filters</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader('Store');
+  renderFooter();
+
+  const params = new URLSearchParams(location.search);
+  const state = {
+    cat: params.get('cat') ? [params.get('cat')] : [],
+    sort: params.get('sort') || 'popular',
+    q: (params.get('q') || '').toLowerCase(),
+    min: '', max: '', minRating: 0,
+  };
+  document.getElementById('sort-select').value = state.sort;
+
+  document.getElementById('cat-filters').innerHTML = CATEGORIES.map(c => `
+    <div class="filter-cat ${state.cat.includes(c.slug)?'active':''}" data-cat="${c.slug}">
+      <span>${c.name}</span><span class="n">${PRODUCTS.filter(p=>p.category===c.slug).length}</span>
+    </div>`).join('');
+
+  document.getElementById('rating-filters').innerHTML = [4,3].map(r => `
+    <label class="star-filter"><input type="radio" name="rating" value="${r}"> ${r}+ ${ICON.star}</label>`).join('')
+    + `<label class="star-filter"><input type="radio" name="rating" value="0" checked> Any rating</label>`;
+
+  function applyAndRender(){
+    let list = PRODUCTS.slice();
+    if(state.cat.length) list = list.filter(p => state.cat.includes(p.category));
+    if(state.q) list = list.filter(p => p.name.toLowerCase().includes(state.q) || p.tagline.toLowerCase().includes(state.q));
+    if(state.min) list = list.filter(p => p.price >= Number(state.min));
+    if(state.max) list = list.filter(p => p.price <= Number(state.max));
+    if(state.minRating) list = list.filter(p => p.rating >= state.minRating);
+
+    if(state.sort === 'price-low') list.sort((a,b)=>a.price-b.price);
+    else if(state.sort === 'price-high') list.sort((a,b)=>b.price-a.price);
+    else if(state.sort === 'rated') list.sort((a,b)=>b.rating-a.rating);
+    else if(state.sort === 'newest') list.sort((a,b)=>b.id-a.id);
+    else list.sort((a,b)=>b.reviews-a.reviews);
+
+    const grid = document.getElementById('store-grid');
+    const empty = document.getElementById('no-results');
+    document.getElementById('result-count').textContent = state.q
+      ? `${list.length} results for "${state.q}"` : `Showing ${list.length} of ${PRODUCTS.length} products`;
+
+    if(!list.length){ grid.innerHTML=''; empty.style.display='block'; }
+    else { empty.style.display='none'; grid.innerHTML = list.map(productCard).join(''); bindCardEvents(grid); }
+  }
+
+  document.querySelectorAll('[data-cat]').forEach(el => el.addEventListener('click', () => {
+    const c = el.dataset.cat;
+    state.cat = state.cat.includes(c) ? [] : [c];
+    document.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('active', x.dataset.cat===c && state.cat.includes(c)));
+    applyAndRender();
+  }));
+  document.getElementById('price-min').addEventListener('input', e => { state.min = e.target.value; applyAndRender(); });
+  document.getElementById('price-max').addEventListener('input', e => { state.max = e.target.value; applyAndRender(); });
+  document.querySelectorAll('input[name=rating]').forEach(r => r.addEventListener('change', e => { state.minRating = Number(e.target.value); applyAndRender(); }));
+  document.getElementById('sort-select').addEventListener('change', e => { state.sort = e.target.value; applyAndRender(); });
+  function clearAll(){
+    state.cat=[]; state.min=''; state.max=''; state.minRating=0; state.q='';
+    document.getElementById('price-min').value=''; document.getElementById('price-max').value='';
+    document.querySelector('input[name=rating][value="0"]').checked = true;
+    document.querySelectorAll('[data-cat]').forEach(x=>x.classList.remove('active'));
+    applyAndRender();
+  }
+  document.getElementById('clear-filters').addEventListener('click', clearAll);
+  document.getElementById('reset-from-empty').addEventListener('click', clearAll);
+
+  applyAndRender();
+</script>
+</body>
+</html>

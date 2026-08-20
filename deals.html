@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deals &amp; Offers — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Deals</span></div>
+  <h1 class="display-2">Deals &amp; Offers</h1>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="deal-banner reveal">
+    <div>
+      <div class="eyebrow" style="color:var(--spotlight-dim);">Flash sale</div>
+      <h2 class="display-2" style="color:#fff;margin-top:8px;">40% OFF — Ends Tonight</h2>
+      <p style="margin-top:8px;">Use code <b style="color:var(--spotlight);">PLINTH10</b> at checkout for an additional discount on any order.</p>
+    </div>
+    <div class="countdown" id="deal-countdown"></div>
+  </div>
+
+  <div class="section-head mt-lg reveal"><div><div class="eyebrow">This week only</div><h2 class="display-3">Discounted Products</h2></div></div>
+  <div class="grid grid-4" id="deal-grid"></div>
+
+  <div class="section-head mt-lg reveal"><div><div class="eyebrow">Bundle deals</div><h2 class="display-3">Bundles on Sale</h2></div></div>
+  <div class="grid grid-2" id="deal-bundles"></div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader();
+  renderFooter();
+  mountCountdown(document.getElementById('deal-countdown'), getDealEnd());
+
+  const discounted = PRODUCTS.filter(p => p.was).sort((a,b)=>(1-a.price/a.was)-(1-b.price/b.was) < 0 ? 1 : -1);
+  document.getElementById('deal-grid').innerHTML = discounted.map(productCard).join('');
+  bindCardEvents(document.getElementById('deal-grid'));
+
+  document.getElementById('deal-bundles').innerHTML = BUNDLES.map(b => {
+    const items = b.productIds.map(getProduct); const value = items.reduce((s,p)=>s+p.was,0);
+    return `<a href="bundles.html" class="bundle-card" style="display:block;text-decoration:none;">
+      <div class="bundle-head"><h3 class="display-3">${b.name}</h3><span class="badge-inline">Save $${value-b.price}</span></div>
+      <p>${b.blurb}</p>
+      <div class="bundle-value-row"><span><s style="color:var(--stone);">$${value}</s></span><span class="price" style="font-size:20px;">$${b.price}</span></div>
+    </a>`;
+  }).join('');
+</script>
+</body>
+</html>

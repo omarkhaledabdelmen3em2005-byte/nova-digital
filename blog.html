@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<div class="page-head wrap">
+  <div class="breadcrumb"><a href="index.html">Home</a> / <span>Blog</span></div>
+  <h1 class="display-2">The Plinth Journal</h1>
+  <p style="margin-top:8px;">Notes on marketing, AI, and building a creative business.</p>
+</div>
+
+<section class="wrap" style="padding-top:8px;">
+  <div class="pill-nav" id="blog-cats" style="margin-bottom:26px;"></div>
+  <div class="grid grid-3" id="blog-grid"></div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader();
+  renderFooter();
+
+  const cats = ['All', ...new Set(BLOG_POSTS.map(p=>p.category))];
+  document.getElementById('blog-cats').innerHTML = cats.map((c,i) => `<div class="pill ${i===0?'active':''}" data-cat="${c}">${c}</div>`).join('');
+
+  function render(cat){
+    const list = cat==='All' ? BLOG_POSTS : BLOG_POSTS.filter(p=>p.category===cat);
+    document.getElementById('blog-grid').innerHTML = list.map(p => `
+      <a href="blog.html" class="blog-card reveal in" style="text-decoration:none;">
+        <div class="blog-media" style="background:linear-gradient(135deg, var(--spotlight-dim), var(--verdigris-dim));">
+          <span style="font-family:var(--font-display);font-size:20px;opacity:.6;">${p.category}</span>
+        </div>
+        <div class="blog-body">
+          <span class="blog-cat">${p.category}</span>
+          <h3 class="card-name" style="margin-top:6px;">${p.title}</h3>
+          <div class="blog-meta"><span>${p.author}</span><span>·</span><span>${p.date}</span><span>·</span><span>${p.readMins} min read</span></div>
+        </div>
+      </a>`).join('');
+  }
+  document.getElementById('blog-cats').addEventListener('click', (e) => {
+    const pill = e.target.closest('[data-cat]'); if(!pill) return;
+    document.querySelectorAll('#blog-cats .pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active'); render(pill.dataset.cat);
+  });
+  render('All');
+</script>
+</body>
+</html>

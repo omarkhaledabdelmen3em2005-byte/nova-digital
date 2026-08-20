@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Successful — Plinth</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="site-header"></div>
+
+<section class="wrap">
+  <div class="success-wrap" id="success-root"></div>
+</section>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/main.js"></script>
+<script>
+  renderHeader();
+  renderFooter();
+
+  const orderId = new URLSearchParams(location.search).get('order') || Store.get('plinth_last_order', null);
+  const orders = Store.get('plinth_orders', []);
+  const order = orders.find(o => o.id === orderId);
+  const root = document.getElementById('success-root');
+
+  if(!order){
+    root.innerHTML = `<h2 class="display-2">No recent order found</h2><p style="margin:14px 0 22px;">Your order details couldn't be located on this device.</p><a href="store.html" class="btn btn-primary">Back to Store</a>`;
+  } else {
+    root.innerHTML = `
+      <div class="success-check">${ICON.check}</div>
+      <h1 class="display-2">Payment Successful</h1>
+      <p style="margin-top:10px;">You now have access to your digital products.</p>
+      <div class="order-card">
+        <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--stone);margin-bottom:12px;">
+          <span>Order <b style="color:var(--ink);font-family:var(--font-mono);">${order.id}</b></span>
+          <span>${new Date(order.date).toLocaleDateString()}</span>
+        </div>
+        ${order.items.map(it => {
+          const p = getProduct(it.id); if(!p) return '';
+          return `<div class="order-item">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div class="cart-thumb" style="width:56px;height:56px;background:linear-gradient(135deg, ${p.palette[0]}44, ${p.palette[1]}44);"></div>
+              <div><div style="font-weight:600;font-size:14.5px;">${p.name}</div><div style="font-size:12px;color:var(--stone);">Ready to download</div></div>
+            </div>
+            <button class="btn btn-outline btn-sm" data-download="${p.name}">Download</button>
+          </div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:space-between;padding-top:16px;font-size:13.5px;color:var(--stone);">
+          <span>Sent to ${order.email}</span><span>Download link never expires</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a href="account.html?tab=downloads" class="btn btn-primary">View Order</a>
+        <a href="store.html" class="btn btn-outline">Keep Exploring</a>
+      </div>`;
+    document.querySelectorAll('[data-download]').forEach(b => b.addEventListener('click', () => toast(`Downloading ${b.dataset.download}…`, {icon:ICON.check})));
+  }
+</script>
+</body>
+</html>
